@@ -12,7 +12,6 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	"github.com/malisit/kolpa"
 	"github.com/tidwall/redcon"
 	"github.com/tinylib/msgp/msgp"
 )
@@ -24,7 +23,6 @@ var (
 	flagLogLvl = flag.String("L", "info", "Log verbosity level [crit,error,warn,info,debug]")
 	flagsave   = flag.Duration("save", time.Duration(5*time.Minute), "Dump memory to db file interval")
 	flagpprof  = flag.Bool("pprof", false, "Debug information on http port :6060")
-	flagfaked  = flag.Int("faked", 0, "Generate fake data")
 )
 
 var search *Search
@@ -174,23 +172,6 @@ func main() {
 	}
 
 	log.Info("Searcher service started", "addr", *flagaddr, "startup", time.Since(startup).Round(time.Millisecond))
-
-	//TODO: remove after development
-	if *flagfaked > 0 {
-		go func() {
-			log.Debug("Fake data generating...")
-			k := kolpa.C("tr_TR")
-
-			key := "fake"
-			for i := 0; i < *flagfaked; i++ {
-				id := randomString(12)
-
-				name := k.FirstName()
-				search.Set(key, id, name)
-			}
-			log.Debug("Faker users generated")
-		}()
-	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)

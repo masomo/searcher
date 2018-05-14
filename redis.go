@@ -137,6 +137,14 @@ func redisCommandNext(conn redcon.Conn, cmd redcon.Command) {
 		}
 
 		conn.WriteBulkString(string(data))
+	case "flush":
+		search.Flush()
+		conn.WriteString("OK")
+	case "save":
+		go func() {
+			syncDBProcess()
+		}()
+		conn.WriteString("OK")
 	default:
 		conn.WriteError("ERR unknown command '" + string(cmd.Args[0]) + "'")
 	}

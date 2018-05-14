@@ -137,3 +137,11 @@ func (s *Search) Search(key, query string, start, stop int) *Result {
 
 	return result
 }
+
+// Flush function
+func (s *Search) Flush() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.Items = make(map[string]map[string]string)
+}
