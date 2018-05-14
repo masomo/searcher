@@ -122,7 +122,7 @@ func redisCommandNext(conn redcon.Conn, cmd redcon.Command) {
 				start = 0
 			}
 
-			stop, err = strconv.Atoi(string(cmd.Args[3]))
+			stop, err = strconv.Atoi(string(cmd.Args[4]))
 			if err != nil {
 				stop = 0
 			}
@@ -137,6 +137,8 @@ func redisCommandNext(conn redcon.Conn, cmd redcon.Command) {
 		}
 
 		conn.WriteBulkString(string(data))
+	default:
+		conn.WriteError("ERR unknown command '" + string(cmd.Args[0]) + "'")
 	}
 }
 

@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -23,8 +24,12 @@ type Search struct {
 // Result structure
 //msgp:ignore Result
 type Result struct {
-	Found []string `json:"found"`
-	Count int      `json:"count"`
+	Key     string   `json:"key"`
+	Found   []string `json:"found"`
+	Count   int      `json:"count"`
+	Start   int      `json:"start"`
+	Stop    int      `json:"stop"`
+	Elapsed string   `json:"elapsed"`
 }
 
 // NewSearch function
@@ -90,6 +95,7 @@ func (s *Search) Search(key, query string, start, stop int) *Result {
 	defer s.mu.RUnlock()
 
 	result := &Result{
+		Key:   key,
 		Found: []string{},
 		Count: 0,
 	}
@@ -98,11 +104,16 @@ func (s *Search) Search(key, query string, start, stop int) *Result {
 		return result
 	}
 
+	t1 := time.Now()
+
+	query = strings.ToLower(query)
 	for id, value := range s.Items[key] {
-		if strings.Contains(value, query) {
+		if strings.Contains(strings.ToLower(value), query) {
 			result.Found = append(result.Found, id)
 		}
 	}
+
+	result.Elapsed = time.Since(t1).Round(time.Millisecond).String()
 
 	if start > stop {
 		start = stop
@@ -112,15 +123,17 @@ func (s *Search) Search(key, query string, start, stop int) *Result {
 		start = 0
 	}
 
-	if stop > len(result.Found) {
+	if stop > len(result.Found) || stop == 0 {
 		stop = len(result.Found)
 	}
 
+	result.Start = start
+	result.Stop = stop
 	result.Count = len(result.Found)
 
-	if start != 0 && stop != 0 {
-		result.Found = result.Found[start:stop]
-	}
+	sort.Strings(result.Found)
+
+	result.Found = result.Found[start:stop]
 
 	return result
 }
