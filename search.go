@@ -70,7 +70,7 @@ func (s *Search) Set(key, id, value string) {
 		s.Items[key] = make(map[string]string)
 	}
 
-	s.Items[key][id] = value
+	s.Items[key][id] = strings.ToLower(value)
 }
 
 // Del function
@@ -108,7 +108,7 @@ func (s *Search) Search(key, query string, start, stop int) *Result {
 
 	query = strings.ToLower(query)
 	for id, value := range s.Items[key] {
-		if strings.Contains(strings.ToLower(value), query) {
+		if strings.Contains(value, query) {
 			result.Found = append(result.Found, id)
 		}
 	}
