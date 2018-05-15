@@ -46,7 +46,9 @@ func randomString(n int) string {
 }
 
 func syncDBProcess() {
-	ret, ret2, errno := syscall.RawSyscall(syscall.SYS_FORK, 0, 0, 0)
+	runtime.LockOSThread()
+
+	ret, ret2, errno := syscall.Syscall(syscall.SYS_FORK, 0, 0, 0)
 
 	if errno != 0 || ret2 < 0 {
 		log.Error("Search DB sync failed", "error", "fork process failed")
@@ -57,9 +59,43 @@ func syncDBProcess() {
 		ret = 0
 	}
 
-	// Parent process
 	if ret > 0 {
-		_, _, errno = syscall.RawSyscall6(syscall.SYS_WAITID, 0, 0, 0, syscall.WEXITED, 0, 0)
+		// Parent process
+
+		doneCh := make(chan bool)
+		timeout := time.NewTimer(5 * time.Minute)
+		killed := false
+
+		go func() {
+			select {
+			case <-doneCh:
+				log.Debug("Sync process received done")
+			case <-timeout.C:
+				log.Error("Sync process waited too long, sending kill process..")
+
+				killed = true
+
+				proc, err := os.FindProcess(int(ret))
+				if err != nil {
+					return
+				}
+
+				proc.Kill()
+			}
+		}()
+
+		status := syscall.WaitStatus(0)
+
+		_, err := syscall.Wait4(int(ret), &status, 0, nil)
+		if err != nil {
+			log.Debug("Sync process wait4 failed", "error", err.Error())
+		}
+
+		if !killed {
+			timeout.Stop()
+			doneCh <- true
+		}
+
 		return
 	}
 
